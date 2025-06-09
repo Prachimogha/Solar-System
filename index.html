@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animated 3D Solar System</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: black;
+        font-family: Arial, sans-serif;
+      }
+      #controlPanel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px;
+        border-radius: 8px;
+        color: white;
+        z-index: 10;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .slider-container {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controlPanel"></div>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+    <script>
+      const scene = new THREE.Scene();
+
+      // Starry background
+      const starsGeometry = new THREE.BufferGeometry();
+      const starVertices = [];
+      for (let i = 0; i < 10000; i++) {
+        const x = THREE.MathUtils.randFloatSpread(2000);
+        const y = THREE.MathUtils.randFloatSpread(2000);
+        const z = THREE.MathUtils.randFloatSpread(2000);
+        starVertices.push(x, y, z);
+      }
+      starsGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(starVertices, 3)
+      );
+      const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+      const starField = new THREE.Points(starsGeometry, starsMaterial);
+      scene.add(starField);
+
+      const camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        2000
+      );
+      camera.position.z = 100;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+      scene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0xffffff, 2);
+      scene.add(pointLight);
+
+      // Glowing Sun
+      const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const sun = new THREE.Mesh(
+        new THREE.SphereGeometry(5, 64, 64),
+        sunMaterial
+      );
+      scene.add(sun);
+
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.BackSide,
+      });
+      const sunGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(6, 64, 64),
+        glowMaterial
+      );
+      scene.add(sunGlow);
+
+      const planetsData = [
+        {
+          name: "Mercury",
+          color: 0xaaaaaa,
+          distance: 10,
+          size: 0.5,
+          speed: 0.04,
+        },
+        {
+          name: "Venus",
+          color: 0xffcc66,
+          distance: 15,
+          size: 0.8,
+          speed: 0.015,
+        },
+        { name: "Earth", color: 0x3399ff, distance: 20, size: 1, speed: 0.01 },
+        {
+          name: "Mars",
+          color: 0xff6633,
+          distance: 25,
+          size: 0.7,
+          speed: 0.008,
+        },
+        {
+          name: "Jupiter",
+          color: 0xff9966,
+          distance: 35,
+          size: 2.5,
+          speed: 0.002,
+        },
+        {
+          name: "Saturn",
+          color: 0xffcc99,
+          distance: 45,
+          size: 2,
+          speed: 0.0015,
+        },
+        {
+          name: "Uranus",
+          color: 0x66ffff,
+          distance: 55,
+          size: 1.5,
+          speed: 0.001,
+        },
+        {
+          name: "Neptune",
+          color: 0x6666ff,
+          distance: 65,
+          size: 1.5,
+          speed: 0.0008,
+        },
+      ];
+
+      const planetMeshes = [];
+      const speeds = {};
+
+      planetsData.forEach((planet) => {
+        const geometry = new THREE.SphereGeometry(planet.size, 32, 32);
+        const material = new THREE.MeshStandardMaterial({
+          color: planet.color,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        planetMeshes.push({ mesh, ...planet });
+        speeds[planet.name] = planet.speed;
+
+        // Slider UI
+        const controlPanel = document.getElementById("controlPanel");
+        const sliderContainer = document.createElement("div");
+        sliderContainer.className = "slider-container";
+        sliderContainer.innerHTML = `
+        <label>${planet.name} Speed: <span id="${
+          planet.name
+        }-val">${planet.speed.toFixed(4)}</span></label><br>
+        <input type="range" id="${
+          planet.name
+        }" min="0.0005" max="0.05" step="0.0001" value="${planet.speed}">
+      `;
+        controlPanel.appendChild(sliderContainer);
+
+        document.getElementById(planet.name).addEventListener("input", (e) => {
+          speeds[planet.name] = parseFloat(e.target.value);
+          document.getElementById(`${planet.name}-val`).textContent =
+            speeds[planet.name].toFixed(4);
+        });
+      });
+
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsed = clock.getElapsedTime();
+
+        planetMeshes.forEach((planet) => {
+          const angle = elapsed * speeds[planet.name];
+          planet.mesh.position.set(
+            Math.cos(angle) * planet.distance,
+            0,
+            Math.sin(angle) * planet.distance
+          );
+          planet.mesh.rotation.y += 0.01; // planet spin
+        });
+
+        sun.rotation.y += 0.002;
+        sunGlow.rotation.y += 0.002;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>

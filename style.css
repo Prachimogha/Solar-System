@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background-color: black;
+  color: white;
+}
+
+#canvasContainer {
+  width: 100vw;
+  height: 100vh;
+}
+
+#controlPanel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 1;
+}
+
+.slider-container {
+  margin-bottom: 10px;
+}
+
+label {
+  font-size: 14px;
+}
